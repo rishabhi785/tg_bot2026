@@ -30,7 +30,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "bot_data.db")
 PORT = int(os.getenv("PORT", "8000"))
 
 REPLIT_DOMAINS = os.getenv("REPLIT_DOMAINS", "")
-MANUAL_WEBAPP_URL = https://tg-bot2026-dj1f.onrender.com/bot/verify
+MANUAL_WEBAPP_URL = "https://tg-bot2026-dj1f.onrender.com/bot/verify"
 
 if MANUAL_WEBAPP_URL:
     WEBAPP_URL = MANUAL_WEBAPP_URL
