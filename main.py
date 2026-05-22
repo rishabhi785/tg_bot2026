@@ -25,7 +25,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "7844874333:AAG5UAvIffPk-fD2rmqcaOCdfj1kkhWrbSU")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 DB_PATH = os.path.join(os.path.dirname(__file__), "bot_data.db")
 PORT = int(os.getenv("PORT", "8000"))
 
