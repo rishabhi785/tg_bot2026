@@ -79,7 +79,7 @@ async def init_db():
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command"""
     user = update.effective_user
-
+    print("START COMMAND RECEIVED")
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             "INSERT OR IGNORE INTO users (user_id, username, first_name) VALUES (?, ?, ?)",
