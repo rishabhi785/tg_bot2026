@@ -32,7 +32,7 @@ PORT = int(os.getenv("PORT", "8000"))
 ADMIN_ID = 7856754202
 
 REPLIT_DOMAINS = os.getenv("REPLIT_DOMAINS", "")
-MANUAL_WEBAPP_URL = "https://tg-bot2026-dj1f.onrender.com/bot/verify"
+MANUAL_WEBAPP_URL = "https://frontend-2026-device-verification.vercel.app/"
 
 if MANUAL_WEBAPP_URL:
     WEBAPP_URL = MANUAL_WEBAPP_URL
