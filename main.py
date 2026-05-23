@@ -188,35 +188,35 @@ async def send_join_message(update, user_id: int, bot=None):
 
 def get_user_keyboard(user_id: int):
     rows = [
-        [KeyboardButton("💰 Balance"), KeyboardButton("👥 Refer & Earn")],
-        [KeyboardButton("🎁 Bonus"), KeyboardButton("💸 Withdraw")],
-        [KeyboardButton("🏦 Link UPI"), KeyboardButton("💳 Link VSV Wallet")],
-        [KeyboardButton("🏆 Leaderboard"), KeyboardButton("🎟️ Redeem Code")],
-        [KeyboardButton("🛟 Support")],
+        [KeyboardButton("Balance"), KeyboardButton("Refer & Earn")],
+        [KeyboardButton("Bonus"), KeyboardButton("Withdraw")],
+        [KeyboardButton("Link UPI"), KeyboardButton("Link VSV Wallet")],
+        [KeyboardButton("Leaderboard"), KeyboardButton("Redeem Code")],
+        [KeyboardButton("Support")],
     ]
     if user_id == ADMIN_ID:
-        rows.append([KeyboardButton("⚙️ Admin Panel")])
+        rows.append([KeyboardButton("Admin Panel")])
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, one_time_keyboard=False)
 
 
 def get_admin_keyboard():
     rows = [
-        [KeyboardButton("👥 Total Users"), KeyboardButton("📋 Withdrawal Requests")],
-        [KeyboardButton("➕ Add Channel"), KeyboardButton("➖ Remove Channel")],
-        [KeyboardButton("🔄 Update Channel"), KeyboardButton("📣 Broadcast Message")],
-        [KeyboardButton("💵 Set Refer Reward"), KeyboardButton("🔻 Set Min Withdrawal")],
-        [KeyboardButton("🎁 Set Welcome Bonus"), KeyboardButton("🔛 Withdraw ON/OFF")],
-        [KeyboardButton("✏️ Manual Balance"), KeyboardButton("✅ Approve Withdrawal")],
-        [KeyboardButton("❌ Reject Withdrawal"), KeyboardButton("🔙 Back To Menu")],
+        [KeyboardButton("Total Users"), KeyboardButton("Withdrawal Requests")],
+        [KeyboardButton("Add Channel"), KeyboardButton("Remove Channel")],
+        [KeyboardButton("Update Channel"), KeyboardButton("Broadcast Message")],
+        [KeyboardButton("Set Refer Reward"), KeyboardButton("Set Min Withdrawal")],
+        [KeyboardButton("Set Welcome Bonus"), KeyboardButton("Withdraw ON/OFF")],
+        [KeyboardButton("Manual Balance"), KeyboardButton("Approve Withdrawal")],
+        [KeyboardButton("Reject Withdrawal"), KeyboardButton("Back To Menu")],
     ]
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, one_time_keyboard=False)
 
 
 async def send_main_menu(update: Update, name: str, user_id: int):
     await update.message.reply_text(
-        f"👋 *WELCOME, {name.upper()}!*\n\n"
-        "🏠 *MAIN MENU*\n"
-        "Use the buttons below to navigate:",
+        f"🏡 *Welcome To UPI Giveaway Bot!*\n\n"
+        f"Earn money easily and redeem code 💸\n\n"
+        f"👋 Hello, *{name}*! Use the buttons below to navigate:",
         reply_markup=get_user_keyboard(user_id),
         parse_mode="Markdown"
     )
@@ -309,7 +309,9 @@ async def check_join_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     if is_verified:
         await query.edit_message_text("✅ All channels joined!")
         await query.message.reply_text(
-            f"👋 *WELCOME BACK, {user.first_name.upper()}!*\n\n🏠 *MAIN MENU*\nUse the buttons below to navigate:",
+            f"🏡 *Welcome To UPI Giveaway Bot!*\n\n"
+            f"Earn money easily and redeem code 💸\n\n"
+            f"👋 Hello, *{user.first_name}*! Use the buttons below to navigate:",
             reply_markup=get_user_keyboard(user.id),
             parse_mode="Markdown"
         )
@@ -354,12 +356,12 @@ async def combined_message_handler(update: Update, context: ContextTypes.DEFAULT
     text = update.message.text
     user_id = update.effective_user.id
 
-    # Admin panel buttons list (with emojis to match keyboard)
+    # Admin panel buttons list (must match get_admin_keyboard exactly)
     admin_buttons = [
-        "👥 Total Users", "📋 Withdrawal Requests", "➕ Add Channel", "➖ Remove Channel",
-        "🔄 Update Channel", "📣 Broadcast Message", "💵 Set Refer Reward", "🔻 Set Min Withdrawal",
-        "🎁 Set Welcome Bonus", "🔛 Withdraw ON/OFF", "✏️ Manual Balance", "✅ Approve Withdrawal",
-        "❌ Reject Withdrawal", "🔙 Back To Menu"
+        "Total Users", "Withdrawal Requests", "Add Channel", "Remove Channel",
+        "Update Channel", "Broadcast Message", "Set Refer Reward", "Set Min Withdrawal",
+        "Set Welcome Bonus", "Withdraw ON/OFF", "Manual Balance", "Approve Withdrawal",
+        "Reject Withdrawal", "Back To Menu"
     ]
 
     if user_id == ADMIN_ID:
@@ -367,14 +369,14 @@ async def combined_message_handler(update: Update, context: ContextTypes.DEFAULT
         if context.user_data.get('admin_action'):
             await handle_admin_action_input(update, context, text)
             return
+        # Admin Panel button pressed
+        if text == "Admin Panel":
+            await handle_admin_panel_menu(update, context)
+            return
         # If admin clicked an admin panel button
         if text in admin_buttons or context.user_data.get('in_admin'):
             context.user_data['in_admin'] = True
             await handle_admin_text(update, context, text)
-            return
-        # Admin Panel button pressed
-        if text == "⚙️ Admin Panel":
-            await handle_admin_panel_menu(update, context)
             return
 
     # Regular user flow
@@ -412,31 +414,31 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-    if text == "💰 Balance":
+    if text == "Balance":
         await handle_balance(update, user_id)
-    elif text == "👥 Refer & Earn":
+    elif text == "Refer & Earn":
         await handle_refer_earn(update, user_id, context)
-    elif text == "🎁 Bonus":
+    elif text == "Bonus":
         await handle_bonus(update, user_id)
-    elif text == "💸 Withdraw":
+    elif text == "Withdraw":
         await handle_withdraw(update, user_id, context)
-    elif text == "🏦 Link UPI":
+    elif text == "Link UPI":
         context.user_data['waiting_for'] = 'upi'
         await update.message.reply_text(
             "🏦 *LINK UPI ID*\n\nSend your UPI ID\nExample: `name@upi`",
             parse_mode="Markdown"
         )
-    elif text == "💳 Link VSV Wallet":
+    elif text == "Link VSV Wallet":
         context.user_data['waiting_for'] = 'vsv'
         await update.message.reply_text(
             "💳 *LINK VSV WALLET*\n\nSend your VSV Wallet number (exactly 10 digits):",
             parse_mode="Markdown"
         )
-    elif text == "🏆 Leaderboard":
+    elif text == "Leaderboard":
         await handle_leaderboard(update)
-    elif text == "🎟️ Redeem Code":
+    elif text == "Redeem Code":
         await handle_redeem_code_menu(update, user_id, context)
-    elif text == "🛟 Support":
+    elif text == "Support":
         await update.message.reply_text(
             "🛟 *SUPPORT*\n\n"
             "For help and support, contact us:\n\n"
@@ -495,11 +497,11 @@ async def handle_admin_action_input(update: Update, context: ContextTypes.DEFAUL
     action = context.user_data.get('admin_action')
 
     # Allow returning to admin panel or main menu mid-action
-    if text == "🔙 Back To Menu":
+    if text == "Back To Menu":
         context.user_data.clear()
         await send_main_menu(update, update.effective_user.first_name, user_id)
         return
-    if text == "⚙️ Admin Panel":
+    if text == "Admin Panel":
         context.user_data.clear()
         await handle_admin_panel_menu(update, context)
         return
@@ -673,7 +675,7 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     if user_id != ADMIN_ID:
         return
 
-    if text == "👥 Total Users":
+    if text == "Total Users":
         async with aiosqlite.connect(DB_PATH) as db:
             total = (await (await db.execute("SELECT COUNT(*) FROM users")).fetchone())[0]
             verified = (await (await db.execute("SELECT COUNT(*) FROM users WHERE is_verified=1")).fetchone())[0]
@@ -686,7 +688,7 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             reply_markup=get_admin_keyboard()
         )
 
-    elif text == "📋 Withdrawal Requests":
+    elif text == "Withdrawal Requests":
         async with aiosqlite.connect(DB_PATH) as db:
             rows = await (await db.execute(
                 "SELECT id, user_id, amount, method, upi_id, vsv_wallet, created_at FROM withdrawal_requests WHERE status='pending' ORDER BY created_at DESC LIMIT 20"
@@ -704,14 +706,14 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             msg += f"📅 Date: {r[6][:10]}\n\n"
         await update.message.reply_text(msg, parse_mode="Markdown", reply_markup=get_admin_keyboard())
 
-    elif text == "➕ Add Channel":
+    elif text == "Add Channel":
         context.user_data['admin_action'] = 'add_channel'
         await update.message.reply_text(
             "➕ *ADD CHANNEL*\n\nSend channel details in this format:\n`ChannelName|@username|https://t.me/link`",
             parse_mode="Markdown"
         )
 
-    elif text == "➖ Remove Channel":
+    elif text == "Remove Channel":
         async with aiosqlite.connect(DB_PATH) as db:
             rows = await (await db.execute("SELECT id, channel_name, channel_username FROM channels WHERE is_active=1")).fetchall()
         if not rows:
@@ -724,7 +726,7 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         context.user_data['admin_action'] = 'remove_channel'
         await update.message.reply_text(msg, parse_mode="Markdown")
 
-    elif text == "🔄 Update Channel":
+    elif text == "Update Channel":
         async with aiosqlite.connect(DB_PATH) as db:
             rows = await (await db.execute("SELECT id, channel_name, channel_username FROM channels WHERE is_active=1")).fetchall()
         if not rows:
@@ -737,7 +739,7 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         context.user_data['admin_action'] = 'update_channel'
         await update.message.reply_text(msg, parse_mode="Markdown")
 
-    elif text == "💵 Set Refer Reward":
+    elif text == "Set Refer Reward":
         current = await get_setting("refer_reward", "5")
         context.user_data['admin_action'] = 'set_refer_reward'
         await update.message.reply_text(
@@ -745,7 +747,7 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             parse_mode="Markdown"
         )
 
-    elif text == "🔻 Set Min Withdrawal":
+    elif text == "Set Min Withdrawal":
         current = await get_setting("min_withdrawal", "50")
         context.user_data['admin_action'] = 'set_min_withdrawal'
         await update.message.reply_text(
@@ -753,7 +755,7 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             parse_mode="Markdown"
         )
 
-    elif text == "🎁 Set Welcome Bonus":
+    elif text == "Set Welcome Bonus":
         current = await get_setting("welcome_bonus", "10")
         context.user_data['admin_action'] = 'set_welcome_bonus'
         await update.message.reply_text(
@@ -761,7 +763,7 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             parse_mode="Markdown"
         )
 
-    elif text == "🔛 Withdraw ON/OFF":
+    elif text == "Withdraw ON/OFF":
         current = await get_setting("withdrawal_enabled", "1")
         new_val = "0" if current == "1" else "1"
         await set_setting("withdrawal_enabled", new_val)
@@ -772,21 +774,21 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             reply_markup=get_admin_keyboard()
         )
 
-    elif text == "📣 Broadcast Message":
+    elif text == "Broadcast Message":
         context.user_data['admin_action'] = 'broadcast'
         await update.message.reply_text(
             "📣 *BROADCAST MESSAGE*\n\nSend the message to broadcast to all users:",
             parse_mode="Markdown"
         )
 
-    elif text == "✏️ Manual Balance":
+    elif text == "Manual Balance":
         context.user_data['admin_action'] = 'manual_balance'
         await update.message.reply_text(
             "✏️ *MANUAL BALANCE*\n\nSend in format:\n`UserID|Amount`\n\nExample: `123456|50`\nFor deduction: `123456|-20`",
             parse_mode="Markdown"
         )
 
-    elif text == "✅ Approve Withdrawal":
+    elif text == "Approve Withdrawal":
         async with aiosqlite.connect(DB_PATH) as db:
             rows = await (await db.execute(
                 "SELECT id, user_id, amount, method FROM withdrawal_requests WHERE status='pending' LIMIT 10"
@@ -801,7 +803,7 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         context.user_data['admin_action'] = 'approve_withdrawal'
         await update.message.reply_text(msg, parse_mode="Markdown")
 
-    elif text == "❌ Reject Withdrawal":
+    elif text == "Reject Withdrawal":
         async with aiosqlite.connect(DB_PATH) as db:
             rows = await (await db.execute(
                 "SELECT id, user_id, amount, method FROM withdrawal_requests WHERE status='pending' LIMIT 10"
@@ -816,7 +818,7 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         context.user_data['admin_action'] = 'reject_withdrawal'
         await update.message.reply_text(msg, parse_mode="Markdown")
 
-    elif text == "🔙 Back To Menu":
+    elif text == "Back To Menu":
         context.user_data.clear()
         await send_main_menu(update, update.effective_user.first_name, user_id)
 
