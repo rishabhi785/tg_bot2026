@@ -32,7 +32,7 @@ PORT = int(os.getenv("PORT", "8000"))
 ADMIN_ID = 7856754202
 
 REPLIT_DOMAINS = os.getenv("REPLIT_DOMAINS", "")
-MANUAL_WEBAPP_URL = "https://tg-bot2026-lndl.onrender.com"
+MANUAL_WEBAPP_URL = "https://tg-bot2026-1.onrender.com/"
 
 if MANUAL_WEBAPP_URL:
     WEBAPP_URL = MANUAL_WEBAPP_URL
