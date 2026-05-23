@@ -173,10 +173,10 @@ async def send_join_message(update, user_id: int, bot=None):
     keyboard = []
     for ch in channels:
         name = ch[3] or ch[1]
-        keyboard.append([InlineKeyboardButton(f"📢 Join {name}", url=ch[2])])
+        keyboard.append([InlineKeyboardButton(f" {name}", url=ch[2])])
     keyboard.append([InlineKeyboardButton("✅ I Have Joined All Channels", callback_data="check_join")])
     text = (
-        "🔒 *ACCESS RESTRICTED*\n\n"
+        "🔒 *PLEASE FIRST JOIN CHANNELS*\n\n"
         "You must join our channels to use this bot.\n\n"
         "👇 Join all channels below, then click the button:"
     )
@@ -254,7 +254,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 await context.bot.send_message(
                     chat_id=referrer_id,
-                    text=f"🎉 *REFERRAL BONUS!*\n\nSomeone joined using your referral link!\n💰 You earned Rs.{refer_reward:.2f}",
+                    text=f"🎉 *REFERRAL BONUS!*\n\nSomeone joined using your referral link!\n💸You earned Rs.{refer_reward:.2f}",
                     parse_mode="Markdown"
                 )
             except:
@@ -440,7 +440,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_redeem_code_menu(update, user_id, context)
     elif text == "Support":
         await update.message.reply_text(
-            "🛟 *SUPPORT*\n\n"
+            " *SUPPORT*\n\n"
             "For help and support, contact us:\n\n"
             "👤 Admin: @rishabh_044\n\n"
             "We will respond as soon as possible!",
