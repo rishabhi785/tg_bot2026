@@ -188,13 +188,13 @@ async def send_join_message(update, user_id: int, bot=None):
 
 def get_user_keyboard(user_id: int):
     rows = [
-        [KeyboardButton("💰 Balance"), KeyboardButton("👥 Refer & Earn")],
-        [KeyboardButton("🎁 Bonus"), KeyboardButton("💸 Withdraw")],
-        [KeyboardButton("🏦 Link UPI"), KeyboardButton("💳 Link VSV Wallet")],
-        [KeyboardButton("🏆 Leaderboard"), KeyboardButton("🎟️ Redeem Code")],
+        [KeyboardButton("Balance"), KeyboardButton("Refer & Earn")],
+        [KeyboardButton("Bonus"), KeyboardButton("Withdraw")],
+        [KeyboardButton("Link UPI"), KeyboardButton("Link VSV Wallet")],
+        [KeyboardButton("Leaderboard"), KeyboardButton("Redeem Code")],
     ]
     if user_id == ADMIN_ID:
-        rows.append([KeyboardButton("⚙️ Admin Panel")])
+        rows.append([KeyboardButton("Admin Panel")])
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, one_time_keyboard=False)
 
 
@@ -376,7 +376,7 @@ async def combined_message_handler(update: Update, context: ContextTypes.DEFAULT
             await handle_admin_action_input(update, context, text)
             return
         # Admin Panel button pressed
-        if text == "⚙️ Admin Panel":
+        if text == "Admin Panel":
             await handle_admin_panel_menu(update, context)
             return
         # If admin clicked an admin panel button
@@ -420,15 +420,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-    if text == "💰 Balance":
+    if text == "Balance":
         await handle_balance(update, user_id)
-    elif text == "👥 Refer & Earn":
+    elif text == "Refer & Earn":
         await handle_refer_earn(update, user_id, context)
-    elif text == "🎁 Bonus":
+    elif text == "Bonus":
         await handle_bonus(update, user_id)
-    elif text == "💸 Withdraw":
+    elif text == "Withdraw":
         await handle_withdraw(update, user_id, context)
-    elif text == "🏦 Link UPI":
+    elif text == "Link UPI":
         context.user_data['waiting_for'] = 'upi'
         await update.message.reply_text(
             f"🏦 *LINK UPI ID*\n"
@@ -436,7 +436,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Send your UPI ID below.\n*Format* : `name@upi`",
             parse_mode="Markdown"
         )
-    elif text == "💳 Link VSV Wallet":
+    elif text == "Link VSV Wallet":
         context.user_data['waiting_for'] = 'vsv'
         await update.message.reply_text(
             f"💳 *LINK VSV WALLET*\n"
@@ -444,11 +444,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Send your VSV Wallet number.\n*Format* : 10 digits only",
             parse_mode="Markdown"
         )
-    elif text == "🏆 Leaderboard":
+    elif text == "Leaderboard":
         await handle_leaderboard(update)
-    elif text == "🎟️ Redeem Code":
+    elif text == "Redeem Code":
         await handle_redeem_code_menu(update, user_id, context)
-    elif text == "⚙️ Admin Panel" and user_id == ADMIN_ID:
+    elif text == "Admin Panel" and user_id == ADMIN_ID:
         await handle_admin_panel_menu(update, context)
     else:
         waiting = context.user_data.get('waiting_for')
@@ -479,9 +479,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await handle_redeem_use(update, user_id, text)
             context.user_data['waiting_for'] = None
         else:
+            keyboard = [[InlineKeyboardButton("💡 How To Earn  ›  Click Here", callback_data="how_to_earn")]]
             await update.message.reply_text(
-                "ℹ️ Please use the menu buttons to navigate.",
-                reply_markup=get_user_keyboard(user_id)
+                f"🏡 *Welcome To UPI Giveaway Bot!*\n\n"
+                f"💸 Earn real UPI cash by referring friends,\n"
+                f"claiming daily bonus & redeeming codes.",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="Markdown"
             )
 
 
