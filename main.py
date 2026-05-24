@@ -70,6 +70,20 @@ async def init_db():
             )
         """)
         await db.execute("""
+            CREATE TABLE IF NOT EXISTS ip_registry (
+                ip_address TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                registered_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS persistent_device_registry (
+                persistent_id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                registered_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        await db.execute("""
             CREATE TABLE IF NOT EXISTS user_balance (
                 user_id INTEGER PRIMARY KEY,
                 balance REAL DEFAULT 0.0,
@@ -1312,6 +1326,7 @@ app.mount("/bot/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 class VerifyRequest(BaseModel):
     init_data: str
     device_id: str
+    persistent_id: str = ""
 
 
 @app.get("/bot/verify")
@@ -1328,7 +1343,7 @@ async def serve_verify_page():
 
 
 @app.post("/bot/api/verify-device")
-async def verify_device(payload: VerifyRequest):
+async def verify_device(payload: VerifyRequest, request: Request):
     user_data = validate_telegram_init_data(payload.init_data, BOT_TOKEN)
     if not user_data:
         raise HTTPException(status_code=403, detail="Invalid Telegram session")
@@ -1336,12 +1351,42 @@ async def verify_device(payload: VerifyRequest):
     if not user_id:
         raise HTTPException(status_code=400, detail="User ID missing")
     device_id = payload.device_id
+    persistent_id = payload.persistent_id or ""
+
+    # Get real IP address
+    client_ip = request.headers.get("X-Forwarded-For", "")
+    if client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+    else:
+        client_ip = request.headers.get("X-Real-IP", "")
+    if not client_ip and request.client:
+        client_ip = request.client.host or ""
+
     async with aiosqlite.connect(DB_PATH) as db:
+        # Check 1: Device fingerprint
         row = await (await db.execute("SELECT user_id FROM device_registry WHERE device_id=?", (device_id,))).fetchone()
         if row and row[0] != user_id:
             return {"status": "blocked", "message": "Device already registered."}
+
+        # Check 2: Persistent localStorage ID
+        if persistent_id:
+            p_row = await (await db.execute("SELECT user_id FROM persistent_device_registry WHERE persistent_id=?", (persistent_id,))).fetchone()
+            if p_row and p_row[0] != user_id:
+                return {"status": "blocked", "message": "Device already registered (persistent)."}
+
+        # Check 3: IP Address
+        if client_ip:
+            ip_row = await (await db.execute("SELECT user_id FROM ip_registry WHERE ip_address=?", (client_ip,))).fetchone()
+            if ip_row and ip_row[0] != user_id:
+                return {"status": "blocked", "message": "IP already registered."}
+
+        # Register all identifiers
         if not row:
             await db.execute("INSERT OR REPLACE INTO device_registry (device_id, user_id) VALUES (?, ?)", (device_id, user_id))
+        if persistent_id and not (p_row if persistent_id else None):
+            await db.execute("INSERT OR REPLACE INTO persistent_device_registry (persistent_id, user_id) VALUES (?, ?)", (persistent_id, user_id))
+        if client_ip:
+            await db.execute("INSERT OR REPLACE INTO ip_registry (ip_address, user_id) VALUES (?, ?)", (client_ip, user_id))
         now = datetime.utcnow().isoformat()
 
         # Check if already verified (to avoid double bonus)
