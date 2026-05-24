@@ -1412,7 +1412,7 @@ async def verify_device(payload: VerifyRequest):
     return {"status": "verified", "user": {"id": user_id, "first_name": user_data.get("first_name")}}
 
 
-@app.get("/bot/healthz")
+@app.api_route("/bot/healthz", methods=["GET", "HEAD"])
 async def health():
     return {"status": "ok"}
 
