@@ -1346,6 +1346,31 @@ async def verify_device(payload: VerifyRequest):
                     pass
 
         await db.commit()
+
+    # Bot se directly user ko main menu bhejo
+    first_name = user_data.get("first_name", "User")
+    try:
+        keyboard = get_user_keyboard(user_id)
+        await bot_app_global.bot.send_message(
+            chat_id=user_id,
+            text=(
+                f"✅ *DEVICE VERIFIED SUCCESSFULLY!*
+
+"
+                f"🏡 *WELCOME TO UPI GIVEAWAY BOT!*
+
+"
+                f"Earn money easily and redeem code 💸
+
+"
+                f"👋 Hello, *{first_name}*! Use the buttons below to navigate:"
+            ),
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+    except Exception as e:
+        logger.error(f"Failed to send main menu after verification: {e}")
+
     return {"status": "verified", "user": {"id": user_id, "first_name": user_data.get("first_name")}}
 
 
