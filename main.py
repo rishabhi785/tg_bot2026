@@ -313,12 +313,15 @@ async def check_join_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = update.message.web_app_data.data
     user = update.effective_user
-    # Clear state so main menu works cleanly
     context.user_data.clear()
     try:
         payload = json.loads(data)
         if payload.get("status") == "verified":
-            # Auto open main menu after verification
+            await update.message.reply_text(
+                f"✅ *VERIFIED SUCCESSFULLY!*",
+                parse_mode="Markdown",
+                reply_markup=get_user_keyboard(user.id)
+            )
             await send_main_menu(update, user.first_name, user.id)
         elif payload.get("status") == "blocked":
             await update.message.reply_text(
