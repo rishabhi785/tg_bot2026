@@ -1354,17 +1354,20 @@ async def verify_device(payload: VerifyRequest):
         await bot_app_global.bot.send_message(
             chat_id=user_id,
             text=(
-                f"✅ *DEVICE VERIFIED SUCCESSFULLY!*
-
-"
-                f"🏡 *WELCOME TO UPI GIVEAWAY BOT!*
-
-"
-                f"Earn money easily and redeem code 💸
-
-"
-                f"👋 Hello, *{first_name}*! Use the buttons below to navigate:"
-            ),
+                
+# Bot se directly user ko main menu bhejo
+    first_name = user_data.get("first_name", "User")
+    try:
+        keyboard = get_user_keyboard(user_id)
+        welcome_text = (
+            "✅ *DEVICE VERIFIED SUCCESSFULLY!*\n\n"
+            "🏡 *WELCOME TO UPI GIVEAWAY BOT!*\n\n"
+            "Earn money easily and redeem code 💸\n\n"
+            f"👋 Hello, *{first_name}*! Use the buttons below to navigate:"
+        )
+        await bot_app_global.bot.send_message(
+            chat_id=user_id,
+            text=welcome_text,
             parse_mode="Markdown",
             reply_markup=keyboard
         )
