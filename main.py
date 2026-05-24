@@ -188,14 +188,13 @@ async def send_join_message(update, user_id: int, bot=None):
 
 def get_user_keyboard(user_id: int):
     rows = [
-        [KeyboardButton("Balance"), KeyboardButton("Refer & Earn")],
-        [KeyboardButton("Bonus"), KeyboardButton("Withdraw")],
-        [KeyboardButton("Link UPI"), KeyboardButton("Link VSV Wallet")],
-        [KeyboardButton("Leaderboard"), KeyboardButton("Redeem Code")],
-        [KeyboardButton("Support")],
+        [KeyboardButton("💰 Balance"), KeyboardButton("👥 Refer & Earn")],
+        [KeyboardButton("🎁 Bonus"), KeyboardButton("💸 Withdraw")],
+        [KeyboardButton("🏦 Link UPI"), KeyboardButton("💳 Link VSV Wallet")],
+        [KeyboardButton("🏆 Leaderboard"), KeyboardButton("🎟️ Redeem Code")],
     ]
     if user_id == ADMIN_ID:
-        rows.append([KeyboardButton("Admin Panel")])
+        rows.append([KeyboardButton("⚙️ Admin Panel")])
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, one_time_keyboard=False)
 
 
@@ -213,12 +212,19 @@ def get_admin_keyboard():
 
 
 async def send_main_menu(update: Update, name: str, user_id: int):
+    keyboard = [[InlineKeyboardButton("💡 How To Earn  ›  Click Here", callback_data="how_to_earn")]]
     await update.message.reply_text(
         f"🏡 *Welcome To UPI Giveaway Bot!*\n\n"
-        f"Earn money easily and redeem code 💸\n\n"
-        f"👋 Hello, *{name}*! Use the buttons below to navigate:",
-        reply_markup=get_user_keyboard(user_id),
+        f"👋 Hello, *{name}*!\n\n"
+        f"💸 Earn real UPI cash by referring friends,\n"
+        f"claiming daily bonus & redeeming codes.\n\n"
+        f"📌 Use the menu buttons below to get started:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
+    )
+    await update.message.reply_text(
+        "👇 Choose an option:",
+        reply_markup=get_user_keyboard(user_id)
     )
 
 
@@ -370,7 +376,7 @@ async def combined_message_handler(update: Update, context: ContextTypes.DEFAULT
             await handle_admin_action_input(update, context, text)
             return
         # Admin Panel button pressed
-        if text == "Admin Panel":
+        if text == "⚙️ Admin Panel":
             await handle_admin_panel_menu(update, context)
             return
         # If admin clicked an admin panel button
@@ -414,45 +420,36 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-    if text == "Balance":
+    if text == "💰 Balance":
         await handle_balance(update, user_id)
-    elif text == "Refer & Earn":
+    elif text == "👥 Refer & Earn":
         await handle_refer_earn(update, user_id, context)
-    elif text == "Bonus":
+    elif text == "🎁 Bonus":
         await handle_bonus(update, user_id)
-    elif text == "Withdraw":
+    elif text == "💸 Withdraw":
         await handle_withdraw(update, user_id, context)
-    elif text == "Link UPI":
+    elif text == "🏦 Link UPI":
         context.user_data['waiting_for'] = 'upi'
         await update.message.reply_text(
-            f"*LINK UPI ID*\n"
+            f"🏦 *LINK UPI ID*\n"
             f"{'─' * 20}\n"
             f"Send your UPI ID below.\n*Format* : `name@upi`",
             parse_mode="Markdown"
         )
-    elif text == "Link VSV Wallet":
+    elif text == "💳 Link VSV Wallet":
         context.user_data['waiting_for'] = 'vsv'
         await update.message.reply_text(
-            f"*LINK VSV WALLET*\n"
+            f"💳 *LINK VSV WALLET*\n"
             f"{'─' * 20}\n"
             f"Send your VSV Wallet number.\n*Format* : 10 digits only",
             parse_mode="Markdown"
         )
-    elif text == "Leaderboard":
+    elif text == "🏆 Leaderboard":
         await handle_leaderboard(update)
-    elif text == "Redeem Code":
+    elif text == "🎟️ Redeem Code":
         await handle_redeem_code_menu(update, user_id, context)
-    elif text == "Support":
-        keyboard = [[InlineKeyboardButton("CONTACT ADMIN", url="https://t.me/rishabh_044")]]
-        await update.message.reply_text(
-            f"*SUPPORT*\n"
-            f"{'─' * 20}\n"
-            f"*Admin* : @rishabh_044\n"
-            f"{'─' * 20}\n"
-            f"We will respond as soon as possible.",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="Markdown"
-        )
+    elif text == "⚙️ Admin Panel" and user_id == ADMIN_ID:
+        await handle_admin_panel_menu(update, context)
     else:
         waiting = context.user_data.get('waiting_for')
         if waiting == 'upi':
@@ -859,40 +856,60 @@ async def handle_refer_earn(update, user_id, context):
     refer_reward = await get_setting("refer_reward", "5")
     bot_username = context.bot.username or "bot"
     refer_link = f"https://t.me/{bot_username}?start={user_id}"
-    keyboard = [[InlineKeyboardButton("SHARE REFERRAL LINK", url=f"https://t.me/share/url?url={refer_link}&text=Join+and+earn+rewards!")]]
+    keyboard = [
+        [
+            InlineKeyboardButton("🚀 My Invites", callback_data="my_invites"),
+            InlineKeyboardButton("🏆 Leaderboard", callback_data="ref_leaderboard"),
+        ],
+        [InlineKeyboardButton("👥 Refer Tracker", callback_data="refer_tracker")],
+    ]
     await update.message.reply_text(
-        f"*REFER & EARN*\n"
-        f"{'─' * 20}\n"
-        f"*Your Referral Link*\n`{refer_link}`\n\n"
-        f"*Total Referrals* : {referral_count}\n"
-        f"*Reward Per Referral* : Rs.{refer_reward}\n"
-        f"{'─' * 20}\n"
-        f"Share your link and earn instantly.",
+        f"💰 *Per Refer Rs.{refer_reward} UPI Cash*\n\n"
+        f"👤 Your Referral Link:\n{refer_link}\n\n"
+        f"Share With Your Friend's & Family And\n"
+        f"Earn Refer Bonus Easily ✨🤑",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
 
 
 async def handle_bonus(update, user_id):
+    keyboard = [
+        [InlineKeyboardButton("🕐 Daily Bonus", callback_data="claim_daily_bonus")],
+        [InlineKeyboardButton("🎁 Gift Code", callback_data="gift_code")],
+    ]
+    await update.message.reply_text(
+        "✨ *Choose One:*",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown"
+    )
+
+
+async def process_daily_bonus(update, user_id, is_callback=False):
     async with aiosqlite.connect(DB_PATH) as db:
         row = await (await db.execute("SELECT balance, last_bonus_claim FROM user_balance WHERE user_id = ?", (user_id,))).fetchone()
     balance = row[0] if row else 0.0
     last_bonus = row[1] if row else None
     now = datetime.utcnow().isoformat()
 
+    async def send_msg(text):
+        if is_callback:
+            await update.message.reply_text(text, parse_mode="Markdown")
+        else:
+            await update.message.reply_text(text, parse_mode="Markdown")
+
     if last_bonus:
         time_diff = (datetime.utcnow() - datetime.fromisoformat(last_bonus)).total_seconds()
         if time_diff < 86400:
             hours_left = int((86400 - time_diff) / 3600)
             mins_left = int(((86400 - time_diff) % 3600) / 60)
-            await update.message.reply_text(
-                f"*DAILY BONUS*\n"
+            await send_msg(
+                f"⏳ *DAILY BONUS*\n"
                 f"{'─' * 20}\n"
                 f"*Status* : Already Claimed\n"
                 f"*Next Claim In* : {hours_left}h {mins_left}m\n"
                 f"{'─' * 20}\n"
-                f"Bonus resets every 24 hours.",
-                parse_mode="Markdown"
+                f"Bonus resets every 24 hours."
             )
             return
 
@@ -900,14 +917,13 @@ async def handle_bonus(update, user_id):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE user_balance SET balance = ?, last_bonus_claim = ? WHERE user_id = ?", (new_balance, now, user_id))
         await db.commit()
-    await update.message.reply_text(
-        f"*DAILY BONUS CLAIMED*\n"
+    await send_msg(
+        f"🎁 *DAILY BONUS CLAIMED*\n"
         f"{'─' * 20}\n"
         f"*Amount Added* : Rs.1.00\n"
         f"*New Balance* : Rs.{new_balance:.2f}\n"
         f"{'─' * 20}\n"
-        f"Come back tomorrow to claim again.",
-        parse_mode="Markdown"
+        f"Come back tomorrow to claim again."
     )
 
 
@@ -1213,11 +1229,85 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "check_join":
         await check_join_callback(update, context)
+
+    elif data == "how_to_earn":
+        await query.message.reply_text(
+            "💡 *HOW TO EARN*\n"
+            f"{'─' * 20}\n"
+            "1️⃣ *Refer Friends* — Share your referral link and earn Rs. per referral\n\n"
+            "2️⃣ *Daily Bonus* — Claim Rs.1 free bonus every 24 hours\n\n"
+            "3️⃣ *Gift Codes* — Use gift codes to instantly add balance\n\n"
+            "4️⃣ *Withdraw* — Withdraw earnings via UPI or VSV Wallet\n"
+            f"{'─' * 20}\n"
+            "Start earning now! 🚀",
+            parse_mode="Markdown"
+        )
+
+    elif data == "my_invites":
+        async with aiosqlite.connect(DB_PATH) as db:
+            row = await (await db.execute("SELECT referral_count FROM user_balance WHERE user_id=?", (user_id,))).fetchone()
+        count = row[0] if row else 0
+        refer_reward = await get_setting("refer_reward", "5")
+        total_earned = count * float(refer_reward)
+        await query.message.reply_text(
+            f"🚀 *MY INVITES*\n"
+            f"{'─' * 20}\n"
+            f"*Total Referrals* : {count}\n"
+            f"*Total Earned* : Rs.{total_earned:.2f}\n"
+            f"{'─' * 20}\n"
+            f"Keep sharing to earn more!",
+            parse_mode="Markdown"
+        )
+
+    elif data == "ref_leaderboard":
+        async with aiosqlite.connect(DB_PATH) as db:
+            rows = await (await db.execute(
+                "SELECT u.first_name, u.username, b.referral_count FROM user_balance b JOIN users u ON b.user_id=u.user_id ORDER BY b.referral_count DESC LIMIT 10"
+            )).fetchall()
+        if not rows:
+            await query.message.reply_text("🏆 *LEADERBOARD*\n─────────────────────\nNo data yet!", parse_mode="Markdown")
+            return
+        msg = f"🏆 *REFERRAL LEADERBOARD*\n{'─' * 20}\n"
+        ranks = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"]
+        for i, r in enumerate(rows):
+            name = r[0] or (f"@{r[1]}" if r[1] else "User")
+            msg += f"*#{ranks[i]}*  {name}  —  {r[2]} Referrals\n"
+        await query.message.reply_text(msg, parse_mode="Markdown")
+
+    elif data == "refer_tracker":
+        async with aiosqlite.connect(DB_PATH) as db:
+            row = await (await db.execute("SELECT referral_count, balance FROM user_balance WHERE user_id=?", (user_id,))).fetchone()
+        count = row[0] if row else 0
+        balance = row[1] if row else 0.0
+        refer_reward = float(await get_setting("refer_reward", "5"))
+        await query.message.reply_text(
+            f"👥 *REFER TRACKER*\n"
+            f"{'─' * 20}\n"
+            f"*Referrals Done* : {count}\n"
+            f"*Earned Via Refer* : Rs.{count * refer_reward:.2f}\n"
+            f"*Current Balance* : Rs.{balance:.2f}\n"
+            f"{'─' * 20}\n"
+            f"Next referral earns you Rs.{refer_reward}!",
+            parse_mode="Markdown"
+        )
+
+    elif data == "claim_daily_bonus":
+        await process_daily_bonus(query, user_id, is_callback=True)
+
+    elif data == "gift_code":
+        context.user_data['waiting_for'] = 'redeem_use'
+        await query.message.reply_text(
+            f"🎁 *GIFT CODE*\n"
+            f"{'─' * 20}\n"
+            f"Send your gift code below to add balance instantly:",
+            parse_mode="Markdown"
+        )
+
     elif data == "redeem_buy":
         context.user_data['waiting_for'] = 'redeem_buy_amount'
         redeem_price = await get_setting("redeem_code_price", "10")
         await query.message.reply_text(
-            f"*BUY REDEEM CODE*\n"
+            f"🛒 *BUY REDEEM CODE*\n"
             f"{'─' * 20}\n"
             f"*Minimum Amount* : Rs.{redeem_price}\n"
             f"{'─' * 20}\n"
@@ -1227,7 +1317,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "redeem_use":
         context.user_data['waiting_for'] = 'redeem_use'
         await query.message.reply_text(
-            f"*USE REDEEM CODE*\n"
+            f"🎟️ *USE REDEEM CODE*\n"
             f"{'─' * 20}\n"
             f"Send your redeem code below:",
             parse_mode="Markdown"
