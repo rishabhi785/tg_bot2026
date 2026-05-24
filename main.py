@@ -171,9 +171,15 @@ async def check_all_channels(bot, user_id: int) -> bool:
 async def send_join_message(update, user_id: int, bot=None):
     channels = await get_active_channels()
     keyboard = []
+    row = []
     for ch in channels:
         name = ch[3] or ch[1]
-        keyboard.append([InlineKeyboardButton(f" {name}", url=ch[2])])
+        row.append(InlineKeyboardButton(f"{name}", url=ch[2]))
+        if len(row) == 2:
+            keyboard.append(row)
+            row = []
+    if row:
+        keyboard.append(row)
     keyboard.append([InlineKeyboardButton("✅ I Have Joined All Channels", callback_data="check_join")])
     text = (
         "🔒 *PLEASE FIRST JOIN CHANNELS*\n\n"
@@ -928,40 +934,77 @@ async def handle_withdraw_amount(update, user_id, context, text):
         await update.message.reply_text(f"❌ Insufficient Balance. Your Balance: Rs.{balance:.2f}")
         return
 
-    method = 'vsv' if vsv_wallet and not upi_id else 'upi'
-
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("UPDATE user_balance SET balance = balance - ? WHERE user_id=?", (amount, user_id))
-        await db.execute(
-            "INSERT INTO withdrawal_requests (user_id, amount, upi_id, vsv_wallet, method) VALUES (?,?,?,?,?)",
-            (user_id, amount, upi_id, vsv_wallet, method)
-        )
-        await db.commit()
+    method = 'vsv' if vsv_wallet and not upi_id else ('vsv' if context.user_data.get('withdraw_method') == 'vsv' else 'upi')
 
     context.user_data['waiting_for'] = None
 
-    try:
-        admin_msg = (
-            f"💸 *NEW WITHDRAWAL REQUEST!*\n\n"
-            f"👤 User ID: {user_id}\n"
-            f"💰 Amount: Rs.{amount:.2f}\n"
-            f"💳 Method: {method.upper()}\n"
-        )
-        if method == 'upi':
-            admin_msg += f"🏦 UPI: {upi_id}"
-        else:
-            admin_msg += f"💳 VSV Wallet: {vsv_wallet}"
-        await update.get_bot().send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown")
-    except:
-        pass
+    # ---- VSV: Automatic transaction ----
+    if method == 'vsv' and vsv_wallet:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("UPDATE user_balance SET balance = balance - ? WHERE user_id=?", (amount, user_id))
+            await db.commit()
+        # Process VSV payment automatically
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(VSV_API_URL, data={
+                    "token": VSV_TOKEN,
+                    "mobile": vsv_wallet,
+                    "amount": str(int(amount)),
+                })
+            resp_data = resp.json()
+            if resp_data.get("status") == "success":
+                await update.message.reply_text(
+                    f"✅ *VSV WALLET PAYMENT SUCCESSFUL!*\n\n"
+                    f"💰 Amount: Rs.{amount:.2f}\n"
+                    f"💳 Wallet: {vsv_wallet}\n\n"
+                    f"Amount has been sent to your VSV Wallet!",
+                    parse_mode="Markdown"
+                )
+            else:
+                # Refund if failed
+                async with aiosqlite.connect(DB_PATH) as db:
+                    await db.execute("UPDATE user_balance SET balance = balance + ? WHERE user_id=?", (amount, user_id))
+                    await db.commit()
+                await update.message.reply_text(
+                    f"❌ *VSV PAYMENT FAILED!*\n\nYour balance has been refunded. Please try again.",
+                    parse_mode="Markdown"
+                )
+        except Exception as e:
+            # Refund on error
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute("UPDATE user_balance SET balance = balance + ? WHERE user_id=?", (amount, user_id))
+                await db.commit()
+            await update.message.reply_text(
+                "❌ *VSV PAYMENT ERROR!*\n\nYour balance has been refunded. Please try again.",
+                parse_mode="Markdown"
+            )
 
-    await update.message.reply_text(
-        f"✅ *WITHDRAWAL REQUEST SUBMITTED!*\n\n"
-        f"💰 Amount: Rs.{amount:.2f}\n"
-        f"💳 Method: {method.upper()}\n\n"
-        f"⏳ Admin will process your request shortly.",
-        parse_mode="Markdown"
-    )
+    # ---- UPI: Admin approval required ----
+    elif method == 'upi' and upi_id:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("UPDATE user_balance SET balance = balance - ? WHERE user_id=?", (amount, user_id))
+            await db.execute(
+                "INSERT INTO withdrawal_requests (user_id, amount, upi_id, vsv_wallet, method) VALUES (?,?,?,?,?)",
+                (user_id, amount, upi_id, vsv_wallet, method)
+            )
+            await db.commit()
+        try:
+            admin_msg = (
+                f"💸 *NEW UPI WITHDRAWAL REQUEST!*\n\n"
+                f"👤 User ID: {user_id}\n"
+                f"💰 Amount: Rs.{amount:.2f}\n"
+                f"🏦 UPI: {upi_id}"
+            )
+            await update.get_bot().send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode="Markdown")
+        except:
+            pass
+        await update.message.reply_text(
+            f"✅ *UPI WITHDRAWAL REQUEST SUBMITTED!*\n\n"
+            f"💰 Amount: Rs.{amount:.2f}\n"
+            f"🏦 UPI: {upi_id}\n\n"
+            f"⏳ Admin will process your request shortly.",
+            parse_mode="Markdown"
+        )
 
 
 async def handle_upi_link(update, user_id, upi_id):
