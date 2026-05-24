@@ -191,8 +191,7 @@ def get_user_keyboard(user_id: int):
         [KeyboardButton("Balance"), KeyboardButton("Refer & Earn")],
         [KeyboardButton("Bonus"), KeyboardButton("Withdraw")],
         [KeyboardButton("Link UPI"), KeyboardButton("Link VSV Wallet")],
-        [KeyboardButton("Leaderboard"), KeyboardButton("Redeem Code")],
-        [KeyboardButton("Support")],
+        [KeyboardButton("Redeem Code")],
     ]
     if user_id == ADMIN_ID:
         rows.append([KeyboardButton("Admin Panel")])
@@ -245,26 +244,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             (user.id, user.username, user.first_name)
         )
         await db.execute("INSERT OR IGNORE INTO user_balance (user_id) VALUES (?)", (user.id,))
-        await db.commit()
 
+        # Store referrer_id only for new users (bonus given after verification)
         if not existing and referrer_id:
-            refer_reward = float(await get_setting("refer_reward", "5"))
-            await db.execute("UPDATE user_balance SET balance = balance + ?, referral_count = referral_count + 1 WHERE user_id=?", (refer_reward, referrer_id))
-            await db.commit()
-            try:
-                await context.bot.send_message(
-                    chat_id=referrer_id,
-                    text=f"🎉 *REFERRAL BONUS!*\n\nSomeone joined using your referral link!\n💸You earned Rs.{refer_reward:.2f}",
-                    parse_mode="Markdown"
-                )
-            except:
-                pass
+            await db.execute("INSERT OR IGNORE INTO bot_settings (key, value) VALUES (?, ?)", (f"pending_referrer_{user.id}", str(referrer_id)))
 
-        if not existing:
-            welcome_bonus = float(await get_setting("welcome_bonus", "10"))
-            if welcome_bonus > 0:
-                await db.execute("UPDATE user_balance SET balance = balance + ? WHERE user_id=?", (welcome_bonus, user.id))
-                await db.commit()
+        await db.commit()
 
         row = await (await db.execute("SELECT is_verified FROM users WHERE user_id = ?", (user.id,))).fetchone()
         is_verified = row[0] if row else 0
@@ -434,18 +419,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "💳 *LINK VSV WALLET*\n\nSend your VSV Wallet number (exactly 10 digits):",
             parse_mode="Markdown"
         )
-    elif text == "Leaderboard":
-        await handle_leaderboard(update)
     elif text == "Redeem Code":
         await handle_redeem_code_menu(update, user_id, context)
-    elif text == "Support":
-        await update.message.reply_text(
-            " *SUPPORT*\n\n"
-            "For help and support, contact us:\n\n"
-            "👤 Admin: @rishabh_044\n\n"
-            "We will respond as soon as possible!",
-            parse_mode="Markdown"
-        )
     else:
         waiting = context.user_data.get('waiting_for')
         if waiting == 'upi':
@@ -845,42 +820,34 @@ async def handle_refer_earn(update, user_id, context):
     referral_count = row[0] if row else 0
     refer_reward = await get_setting("refer_reward", "5")
     bot_username = context.bot.username or "bot"
+    referral_link = f"https://t.me/{bot_username}?start={user_id}"
+
+    keyboard = [
+        [
+            InlineKeyboardButton("MY INVITES", callback_data=f"refer_invites_{user_id}"),
+            InlineKeyboardButton("LEADERBOARD", callback_data="refer_leaderboard"),
+        ],
+        [InlineKeyboardButton("REFER TRACKER", callback_data=f"refer_tracker_{user_id}")],
+    ]
+
     await update.message.reply_text(
-        f"👥 *REFER & EARN*\n\n"
-        f"🔗 Your Referral Link:\n`https://t.me/{bot_username}?start={user_id}`\n\n"
-        f"📊 Total Referrals: {referral_count}\n"
-        f"💰 Earn Rs.{refer_reward} Per Referral!\n\n"
-        f"Share your link and start earning! 🚀",
+        f"💰 *PER REFER RS.{refer_reward} UPI CASH*\n\n"
+        f"👤 *YOUR REFERRAL LINK:*\n`{referral_link}`\n\n"
+        f"*SHARE WITH YOUR FRIENDS & FAMILY AND EARN REFER BONUS EASILY* ✨\n\n"
+        f"📌 *NOTE:* Bonus will be credited only after your friend completes device verification.",
+        reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
 
 
 async def handle_bonus(update, user_id):
-    async with aiosqlite.connect(DB_PATH) as db:
-        row = await (await db.execute("SELECT balance, last_bonus_claim FROM user_balance WHERE user_id = ?", (user_id,))).fetchone()
-    balance = row[0] if row else 0.0
-    last_bonus = row[1] if row else None
-    now = datetime.utcnow().isoformat()
-
-    if last_bonus:
-        time_diff = (datetime.utcnow() - datetime.fromisoformat(last_bonus)).total_seconds()
-        if time_diff < 86400:
-            hours_left = (86400 - time_diff) / 3600
-            await update.message.reply_text(
-                f"⏳ *DAILY BONUS*\n\nCome back in {hours_left:.1f} hours to claim your daily bonus!\n\n🎁 Claim every 24 hours.",
-                parse_mode="Markdown"
-            )
-            return
-
-    new_balance = balance + 1.0
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("UPDATE user_balance SET balance = ?, last_bonus_claim = ? WHERE user_id = ?", (new_balance, now, user_id))
-        await db.commit()
+    keyboard = [
+        [InlineKeyboardButton("DAILY BONUS", callback_data=f"bonus_daily_{user_id}")],
+        [InlineKeyboardButton("GIFT CODE", callback_data=f"bonus_gift_{user_id}")],
+    ]
     await update.message.reply_text(
-        f"🎁 *DAILY BONUS CLAIMED!*\n\n"
-        f"💰 +Rs.1.00 Added!\n"
-        f"💵 New Balance: Rs.{new_balance:.2f}\n\n"
-        f"Come back tomorrow for more! 🚀",
+        "✨ *CHOOSE ONE:*",
+        reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
 
@@ -1024,18 +991,24 @@ async def handle_vsv_link(update, user_id, vsv_number):
 async def handle_leaderboard(update):
     async with aiosqlite.connect(DB_PATH) as db:
         rows = await (await db.execute(
-            "SELECT u.first_name, u.username, b.balance, b.referral_count FROM user_balance b JOIN users u ON b.user_id=u.user_id ORDER BY b.balance DESC LIMIT 10"
+            "SELECT b.user_id, b.referral_count FROM user_balance b JOIN users u ON b.user_id=u.user_id ORDER BY b.referral_count DESC LIMIT 13"
         )).fetchall()
     if not rows:
         await update.message.reply_text("🏆 No Data Yet. Be The First On The Leaderboard!")
         return
-    msg = "🏆 *TOP 10 LEADERBOARD*\n\n"
-    medals = ["🥇", "🥈", "🥉"]
-    for i, r in enumerate(rows, 1):
-        name = r[0] or (f"@{r[1]}" if r[1] else "User")
-        medal = medals[i-1] if i <= 3 else f"{i}."
-        msg += f"{medal} {name} — Rs.{r[2]:.2f} | 👥 {r[3]} Referrals\n"
-    await update.message.reply_text(msg, parse_mode="Markdown")
+
+    rank_emojis = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣", "1️⃣2️⃣", "1️⃣3️⃣"]
+    msg = "😍 *TOP USERS WITH MOST REFERS :*\n\n"
+    for i, r in enumerate(rows):
+        uid = str(r[0])
+        masked_id = uid[:2] + "*" * 5 + uid[-3:] if len(uid) >= 6 else uid
+        rank_emoji = rank_emojis[i] if i < len(rank_emojis) else f"{i+1}."
+        msg += f"{rank_emoji} *TOP {i+1}:*\nUSER ID: {masked_id}\nVERIFIED REFERS: {r[1]}\n\n"
+
+    if hasattr(update, 'message') and update.message:
+        await update.message.reply_text(msg, parse_mode="Markdown")
+    elif hasattr(update, 'edit_message_text'):
+        await update.edit_message_text(msg, parse_mode="Markdown")
 
 
 async def handle_redeem_code_menu(update, user_id, context):
@@ -1163,6 +1136,76 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "check_join":
         await check_join_callback(update, context)
+
+    # ---- REFER & EARN inline buttons ----
+    elif data.startswith("refer_invites_"):
+        target_uid = int(data.split("_")[-1])
+        async with aiosqlite.connect(DB_PATH) as db:
+            row = await (await db.execute("SELECT referral_count FROM user_balance WHERE user_id=?", (target_uid,))).fetchone()
+        count = row[0] if row else 0
+        await query.message.reply_text(
+            f"🚀 *MY INVITES*\n\n"
+            f"👥 *TOTAL VERIFIED REFERRALS:* {count}\n\n"
+            f"_Keep sharing your link to earn more!_",
+            parse_mode="Markdown"
+        )
+
+    elif data == "refer_leaderboard":
+        await handle_leaderboard(query)
+
+    elif data.startswith("refer_tracker_"):
+        target_uid = int(data.split("_")[-1])
+        async with aiosqlite.connect(DB_PATH) as db:
+            row = await (await db.execute("SELECT referral_count FROM user_balance WHERE user_id=?", (target_uid,))).fetchone()
+        count = row[0] if row else 0
+        refer_reward = await get_setting("refer_reward", "5")
+        earned = count * float(refer_reward)
+        await query.message.reply_text(
+            f"👥 *REFER TRACKER*\n\n"
+            f"✅ *VERIFIED REFERRALS:* {count}\n"
+            f"💰 *TOTAL EARNED FROM REFERS:* RS.{earned:.2f}\n\n"
+            f"_Bonus is credited after each friend verifies their device._",
+            parse_mode="Markdown"
+        )
+
+    # ---- BONUS inline buttons ----
+    elif data.startswith("bonus_daily_"):
+        target_uid = int(data.split("_")[-1])
+        async with aiosqlite.connect(DB_PATH) as db:
+            row = await (await db.execute("SELECT balance, last_bonus_claim FROM user_balance WHERE user_id=?", (target_uid,))).fetchone()
+        balance = row[0] if row else 0.0
+        last_bonus = row[1] if row else None
+        now = datetime.utcnow().isoformat()
+
+        if last_bonus:
+            time_diff = (datetime.utcnow() - datetime.fromisoformat(last_bonus)).total_seconds()
+            if time_diff < 86400:
+                hours_left = (86400 - time_diff) / 3600
+                await query.message.reply_text(
+                    f"⏳ *DAILY BONUS*\n\nCome back in *{hours_left:.1f} hours* to claim your daily bonus!\n\n🎁 Claim every 24 hours.",
+                    parse_mode="Markdown"
+                )
+                return
+
+        new_balance = balance + 1.0
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("UPDATE user_balance SET balance=?, last_bonus_claim=? WHERE user_id=?", (new_balance, now, target_uid))
+            await db.commit()
+        await query.message.reply_text(
+            f"🎁 *DAILY BONUS CLAIMED!*\n\n"
+            f"💰 +RS.1.00 ADDED!\n"
+            f"💵 NEW BALANCE: RS.{new_balance:.2f}\n\n"
+            f"Come back tomorrow for more! 🚀",
+            parse_mode="Markdown"
+        )
+
+    elif data.startswith("bonus_gift_"):
+        context.user_data['waiting_for'] = 'redeem_use'
+        await query.message.reply_text(
+            "🎟️ *USE GIFT CODE*\n\nSend your gift/redeem code:",
+            parse_mode="Markdown"
+        )
+
     elif data == "redeem_buy":
         context.user_data['waiting_for'] = 'redeem_buy_amount'
         redeem_price = await get_setting("redeem_code_price", "10")
@@ -1254,16 +1297,51 @@ async def verify_device(payload: VerifyRequest):
         if not row:
             await db.execute("INSERT OR REPLACE INTO device_registry (device_id, user_id) VALUES (?, ?)", (device_id, user_id))
         now = datetime.utcnow().isoformat()
+
+        # Check if already verified (to avoid double bonus)
+        already_verified = await (await db.execute("SELECT is_verified FROM users WHERE user_id=?", (user_id,))).fetchone()
+        was_verified = already_verified[0] if already_verified else 0
+
         await db.execute(
             """INSERT INTO users (user_id, username, first_name, is_verified, device_id, verified_at)
                VALUES (?, ?, ?, 1, ?, ?)
                ON CONFLICT(user_id) DO UPDATE SET is_verified=1, device_id=excluded.device_id, verified_at=excluded.verified_at""",
             (user_id, user_data.get("username"), user_data.get("first_name"), device_id, now)
         )
-        welcome_bonus = float(await get_setting("welcome_bonus", "10"))
+
         existing_balance = await (await db.execute("SELECT balance FROM user_balance WHERE user_id=?", (user_id,))).fetchone()
+        welcome_bonus = float(await get_setting("welcome_bonus", "10"))
+
         if not existing_balance:
-            await db.execute("INSERT OR IGNORE INTO user_balance (user_id, balance) VALUES (?,?)", (user_id, welcome_bonus))
+            await db.execute("INSERT OR IGNORE INTO user_balance (user_id, balance) VALUES (?,?)", (user_id, 0))
+            await db.commit()
+
+        # Give welcome bonus only once (first verification)
+        if not was_verified:
+            if welcome_bonus > 0:
+                await db.execute("UPDATE user_balance SET balance = balance + ? WHERE user_id=?", (welcome_bonus, user_id))
+
+            # Give referral bonus to referrer now (after verification)
+            referrer_row = await (await db.execute("SELECT value FROM bot_settings WHERE key=?", (f"pending_referrer_{user_id}",))).fetchone()
+            if referrer_row:
+                referrer_id = int(referrer_row[0])
+                refer_reward = float(await get_setting("refer_reward", "5"))
+                await db.execute(
+                    "UPDATE user_balance SET balance = balance + ?, referral_count = referral_count + 1 WHERE user_id=?",
+                    (refer_reward, referrer_id)
+                )
+                await db.execute("DELETE FROM bot_settings WHERE key=?", (f"pending_referrer_{user_id}",))
+                await db.commit()
+                # Notify referrer
+                try:
+                    await bot_app_global.bot.send_message(
+                        chat_id=referrer_id,
+                        text=f"🎉 *REFERRAL BONUS!*\n\nYour friend verified their device!\n💸 You earned Rs.{refer_reward:.2f}",
+                        parse_mode="Markdown"
+                    )
+                except:
+                    pass
+
         await db.commit()
     return {"status": "verified", "user": {"id": user_id, "first_name": user_data.get("first_name")}}
 
