@@ -425,13 +425,17 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "Link UPI":
         context.user_data['waiting_for'] = 'upi'
         await update.message.reply_text(
-            "🏦 *LINK UPI ID*\n\nSend your UPI ID\nExample: `name@upi`",
+            f"*LINK UPI ID*\n"
+            f"{'─' * 20}\n"
+            f"Send your UPI ID below.\n*Format* : `name@upi`",
             parse_mode="Markdown"
         )
     elif text == "Link VSV Wallet":
         context.user_data['waiting_for'] = 'vsv'
         await update.message.reply_text(
-            "💳 *LINK VSV WALLET*\n\nSend your VSV Wallet number (exactly 10 digits):",
+            f"*LINK VSV WALLET*\n"
+            f"{'─' * 20}\n"
+            f"Send your VSV Wallet number.\n*Format* : 10 digits only",
             parse_mode="Markdown"
         )
     elif text == "Leaderboard":
@@ -439,11 +443,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "Redeem Code":
         await handle_redeem_code_menu(update, user_id, context)
     elif text == "Support":
+        keyboard = [[InlineKeyboardButton("CONTACT ADMIN", url="https://t.me/rishabh_044")]]
         await update.message.reply_text(
-            " *SUPPORT*\n\n"
-            "For help and support, contact us:\n\n"
-            "👤 Admin: @rishabh_044\n\n"
-            "We will respond as soon as possible!",
+            f"*SUPPORT*\n"
+            f"{'─' * 20}\n"
+            f"*Admin* : @rishabh_044\n"
+            f"{'─' * 20}\n"
+            f"We will respond as soon as possible.",
+            reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown"
         )
     else:
@@ -462,7 +469,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data['redeem_email'] = text
             context.user_data['waiting_for'] = 'redeem_mobile'
             await update.message.reply_text(
-                "📱 *MOBILE NUMBER*\n\nNow send your mobile number:",
+                f"*BUY REDEEM CODE*\n"
+                f"{'─' * 20}\n"
+                f"*Email* : {text}\n"
+                f"{'─' * 20}\n"
+                f"Now send your mobile number:",
                 parse_mode="Markdown"
             )
         elif waiting == 'redeem_mobile':
@@ -831,10 +842,12 @@ async def handle_balance(update, user_id):
     balance = row[0] if row else 0.0
     refs = row[1] if row else 0
     await update.message.reply_text(
-        f"💰 *YOUR BALANCE*\n\n"
-        f"💵 Balance: Rs.{balance:.2f}\n"
-        f"👥 Total Referrals: {refs}\n\n"
-        f"Keep referring to earn more! 🚀",
+        f"*YOUR BALANCE*\n"
+        f"{'─' * 20}\n"
+        f"*Balance* : Rs.{balance:.2f}\n"
+        f"*Referrals* : {refs}\n"
+        f"{'─' * 20}\n"
+        f"Refer friends to earn more rewards.",
         parse_mode="Markdown"
     )
 
@@ -845,12 +858,17 @@ async def handle_refer_earn(update, user_id, context):
     referral_count = row[0] if row else 0
     refer_reward = await get_setting("refer_reward", "5")
     bot_username = context.bot.username or "bot"
+    refer_link = f"https://t.me/{bot_username}?start={user_id}"
+    keyboard = [[InlineKeyboardButton("SHARE REFERRAL LINK", url=f"https://t.me/share/url?url={refer_link}&text=Join+and+earn+rewards!")]]
     await update.message.reply_text(
-        f"👥 *REFER & EARN*\n\n"
-        f"🔗 Your Referral Link:\n`https://t.me/{bot_username}?start={user_id}`\n\n"
-        f"📊 Total Referrals: {referral_count}\n"
-        f"💰 Earn Rs.{refer_reward} Per Referral!\n\n"
-        f"Share your link and start earning! 🚀",
+        f"*REFER & EARN*\n"
+        f"{'─' * 20}\n"
+        f"*Your Referral Link*\n`{refer_link}`\n\n"
+        f"*Total Referrals* : {referral_count}\n"
+        f"*Reward Per Referral* : Rs.{refer_reward}\n"
+        f"{'─' * 20}\n"
+        f"Share your link and earn instantly.",
+        reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
 
@@ -865,9 +883,15 @@ async def handle_bonus(update, user_id):
     if last_bonus:
         time_diff = (datetime.utcnow() - datetime.fromisoformat(last_bonus)).total_seconds()
         if time_diff < 86400:
-            hours_left = (86400 - time_diff) / 3600
+            hours_left = int((86400 - time_diff) / 3600)
+            mins_left = int(((86400 - time_diff) % 3600) / 60)
             await update.message.reply_text(
-                f"⏳ *DAILY BONUS*\n\nCome back in {hours_left:.1f} hours to claim your daily bonus!\n\n🎁 Claim every 24 hours.",
+                f"*DAILY BONUS*\n"
+                f"{'─' * 20}\n"
+                f"*Status* : Already Claimed\n"
+                f"*Next Claim In* : {hours_left}h {mins_left}m\n"
+                f"{'─' * 20}\n"
+                f"Bonus resets every 24 hours.",
                 parse_mode="Markdown"
             )
             return
@@ -877,10 +901,12 @@ async def handle_bonus(update, user_id):
         await db.execute("UPDATE user_balance SET balance = ?, last_bonus_claim = ? WHERE user_id = ?", (new_balance, now, user_id))
         await db.commit()
     await update.message.reply_text(
-        f"🎁 *DAILY BONUS CLAIMED!*\n\n"
-        f"💰 +Rs.1.00 Added!\n"
-        f"💵 New Balance: Rs.{new_balance:.2f}\n\n"
-        f"Come back tomorrow for more! 🚀",
+        f"*DAILY BONUS CLAIMED*\n"
+        f"{'─' * 20}\n"
+        f"*Amount Added* : Rs.1.00\n"
+        f"*New Balance* : Rs.{new_balance:.2f}\n"
+        f"{'─' * 20}\n"
+        f"Come back tomorrow to claim again.",
         parse_mode="Markdown"
     )
 
@@ -889,7 +915,10 @@ async def handle_withdraw(update, user_id, context):
     withdrawal_enabled = await get_setting("withdrawal_enabled", "1")
     if withdrawal_enabled == "0":
         await update.message.reply_text(
-            "🔒 *WITHDRAWALS DISABLED*\n\nWithdrawals are currently disabled. Please try again later.",
+            "*WITHDRAWALS DISABLED*\n"
+            f"{'─' * 20}\n"
+            "Withdrawals are currently disabled by the admin.\n"
+            "Please try again later.",
             parse_mode="Markdown"
         )
         return
@@ -903,26 +932,31 @@ async def handle_withdraw(update, user_id, context):
 
     if balance < min_withdrawal:
         await update.message.reply_text(
-            f"❌ *INSUFFICIENT BALANCE*\n\n"
-            f"💵 Your Balance: Rs.{balance:.2f}\n"
-            f"🔻 Minimum Withdrawal: Rs.{min_withdrawal:.0f}\n\n"
-            f"Refer more users to increase your balance! 👥",
+            f"*WITHDRAW*\n"
+            f"{'─' * 20}\n"
+            f"*Your Balance* : Rs.{balance:.2f}\n"
+            f"*Minimum Required* : Rs.{min_withdrawal:.0f}\n"
+            f"{'─' * 20}\n"
+            f"Refer more users to increase your balance.",
             parse_mode="Markdown"
         )
         return
 
     if not upi_id and not vsv_wallet:
         await update.message.reply_text(
-            "⚠️ *PAYMENT METHOD REQUIRED*\n\nPlease link your UPI ID or VSV Wallet first before withdrawing.",
+            "*WITHDRAW*\n"
+            f"{'─' * 20}\n"
+            "No payment method linked.\n"
+            "Please link your UPI ID or VSV Wallet first.",
             parse_mode="Markdown"
         )
         return
 
     keyboard = []
     if upi_id:
-        keyboard.append([InlineKeyboardButton(f"🏦 Withdraw via UPI ({upi_id})", callback_data=f"wd_upi_{user_id}")])
+        keyboard.append([InlineKeyboardButton(f"UPI  —  {upi_id}", callback_data=f"wd_upi_{user_id}")])
     if vsv_wallet:
-        keyboard.append([InlineKeyboardButton(f"💳 Withdraw via VSV Wallet ({vsv_wallet})", callback_data=f"wd_vsv_{user_id}")])
+        keyboard.append([InlineKeyboardButton(f"VSV WALLET  —  {vsv_wallet}", callback_data=f"wd_vsv_{user_id}")])
 
     context.user_data['withdraw_balance'] = balance
     context.user_data['waiting_for'] = 'withdraw_amount'
@@ -930,10 +964,12 @@ async def handle_withdraw(update, user_id, context):
     context.user_data['withdraw_vsv'] = vsv_wallet
 
     await update.message.reply_text(
-        f"💸 *WITHDRAW*\n\n"
-        f"💵 Your Balance: Rs.{balance:.2f}\n"
-        f"🔻 Minimum: Rs.{min_withdrawal:.0f}\n\n"
-        f"Send the amount you want to withdraw:",
+        f"*WITHDRAW*\n"
+        f"{'─' * 20}\n"
+        f"*Available Balance* : Rs.{balance:.2f}\n"
+        f"*Minimum Withdrawal* : Rs.{min_withdrawal:.0f}\n"
+        f"{'─' * 20}\n"
+        f"Select payment method and enter amount:",
         reply_markup=InlineKeyboardMarkup(keyboard) if keyboard else None,
         parse_mode="Markdown"
     )
@@ -952,10 +988,10 @@ async def handle_withdraw_amount(update, user_id, context, text):
     vsv_wallet = context.user_data.get('withdraw_vsv')
 
     if amount < min_withdrawal:
-        await update.message.reply_text(f"⚠️ Minimum Withdrawal Is Rs.{min_withdrawal:.0f}")
+        await update.message.reply_text(f"*WITHDRAW*\n{'─'*20}\nMinimum withdrawal amount is Rs.{min_withdrawal:.0f}.", parse_mode="Markdown")
         return
     if amount > balance:
-        await update.message.reply_text(f"❌ Insufficient Balance. Your Balance: Rs.{balance:.2f}")
+        await update.message.reply_text(f"*WITHDRAW*\n{'─'*20}\nInsufficient balance.\n*Available* : Rs.{balance:.2f}", parse_mode="Markdown")
         return
 
     method = 'vsv' if vsv_wallet and not upi_id else 'upi'
@@ -986,23 +1022,27 @@ async def handle_withdraw_amount(update, user_id, context, text):
         pass
 
     await update.message.reply_text(
-        f"✅ *WITHDRAWAL REQUEST SUBMITTED!*\n\n"
-        f"💰 Amount: Rs.{amount:.2f}\n"
-        f"💳 Method: {method.upper()}\n\n"
-        f"⏳ Admin will process your request shortly.",
+        f"*WITHDRAWAL REQUEST SUBMITTED*\n"
+        f"{'─' * 20}\n"
+        f"*Amount* : Rs.{amount:.2f}\n"
+        f"*Method* : {method.upper()}\n"
+        f"{'─' * 20}\n"
+        f"Admin will process your request shortly.",
         parse_mode="Markdown"
     )
 
 
 async def handle_upi_link(update, user_id, upi_id):
     if "@" not in upi_id or len(upi_id) < 5:
-        await update.message.reply_text("⚠️ Invalid UPI ID. Format: name@upi")
+        await update.message.reply_text("*LINK UPI ID*\n─────────────────────\nInvalid UPI ID format.\nCorrect format: name@upi", parse_mode="Markdown")
         return
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE user_balance SET upi_id = ? WHERE user_id = ?", (upi_id, user_id))
         await db.commit()
     await update.message.reply_text(
-        f"✅ *UPI ID LINKED!*\n\n🏦 UPI: `{upi_id}`",
+        f"*UPI ID LINKED SUCCESSFULLY*\n"
+        f"{'─' * 20}\n"
+        f"*UPI ID* : `{upi_id}`",
         parse_mode="Markdown"
     )
 
@@ -1010,13 +1050,15 @@ async def handle_upi_link(update, user_id, upi_id):
 async def handle_vsv_link(update, user_id, vsv_number):
     vsv_number = vsv_number.strip()
     if not vsv_number.isdigit() or len(vsv_number) != 10:
-        await update.message.reply_text("⚠️ Invalid VSV Wallet Number. It Must Be Exactly 10 Digits.")
+        await update.message.reply_text("*LINK VSV WALLET*\n─────────────────────\nInvalid number. Must be exactly 10 digits.", parse_mode="Markdown")
         return
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE user_balance SET vsv_wallet = ? WHERE user_id = ?", (vsv_number, user_id))
         await db.commit()
     await update.message.reply_text(
-        f"✅ *VSV WALLET LINKED!*\n\n💳 Wallet: `{vsv_number}`",
+        f"*VSV WALLET LINKED SUCCESSFULLY*\n"
+        f"{'─' * 20}\n"
+        f"*Wallet Number* : `{vsv_number}`",
         parse_mode="Markdown"
     )
 
@@ -1027,26 +1069,26 @@ async def handle_leaderboard(update):
             "SELECT u.first_name, u.username, b.balance, b.referral_count FROM user_balance b JOIN users u ON b.user_id=u.user_id ORDER BY b.balance DESC LIMIT 10"
         )).fetchall()
     if not rows:
-        await update.message.reply_text("🏆 No Data Yet. Be The First On The Leaderboard!")
+        await update.message.reply_text("*LEADERBOARD*\n─────────────────────\nNo data yet. Be the first!", parse_mode="Markdown")
         return
-    msg = "🏆 *TOP 10 LEADERBOARD*\n\n"
-    medals = ["🥇", "🥈", "🥉"]
-    for i, r in enumerate(rows, 1):
+    msg = f"*TOP 10 LEADERBOARD*\n{'─' * 20}\n"
+    ranks = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"]
+    for i, r in enumerate(rows):
         name = r[0] or (f"@{r[1]}" if r[1] else "User")
-        medal = medals[i-1] if i <= 3 else f"{i}."
-        msg += f"{medal} {name} — Rs.{r[2]:.2f} | 👥 {r[3]} Referrals\n"
+        msg += f"*#{ranks[i]}*  {name}\n        Balance: Rs.{r[2]:.2f}  |  Referrals: {r[3]}\n"
     await update.message.reply_text(msg, parse_mode="Markdown")
 
 
 async def handle_redeem_code_menu(update, user_id, context):
     keyboard = [
-        [InlineKeyboardButton("🛒 Buy Redeem Code", callback_data="redeem_buy")],
-        [InlineKeyboardButton("🎟️ Use Redeem Code", callback_data="redeem_use")],
+        [InlineKeyboardButton("BUY REDEEM CODE", callback_data="redeem_buy")],
+        [InlineKeyboardButton("USE REDEEM CODE", callback_data="redeem_use")],
     ]
     await update.message.reply_text(
-        "🎟️ *REDEEM CODE*\n\n"
-        "🛒 *Buy A Redeem Code* — Purchase a code (min Rs.10) and receive it on your email.\n\n"
-        "🎟️ *Use A Redeem Code* — Enter an existing code to add balance.",
+        f"*REDEEM CODE*\n"
+        f"{'─' * 20}\n"
+        "*BUY A CODE*\nPurchase a redeem code and receive it on your email.\n\n"
+        "*USE A CODE*\nEnter an existing code to add balance to your account.",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
     )
@@ -1061,7 +1103,7 @@ async def handle_redeem_buy(update, user_id, context, text):
 
     redeem_price = float(await get_setting("redeem_code_price", "10"))
     if amount < redeem_price:
-        await update.message.reply_text(f"⚠️ Minimum Redeem Code Amount Is Rs.{redeem_price:.0f}")
+        await update.message.reply_text(f"*BUY REDEEM CODE*\n{'─'*20}\nMinimum amount is Rs.{redeem_price:.0f}.", parse_mode="Markdown")
         return
 
     async with aiosqlite.connect(DB_PATH) as db:
@@ -1069,14 +1111,18 @@ async def handle_redeem_buy(update, user_id, context, text):
     balance = row[0] if row else 0.0
 
     if balance < amount:
-        await update.message.reply_text(f"❌ Insufficient Balance. Your Balance: Rs.{balance:.2f}")
+        await update.message.reply_text(f"*BUY REDEEM CODE*\n{'─'*20}\nInsufficient balance.\n*Available* : Rs.{balance:.2f}", parse_mode="Markdown")
         context.user_data['waiting_for'] = None
         return
 
     context.user_data['redeem_amount'] = amount
     context.user_data['waiting_for'] = 'redeem_email'
     await update.message.reply_text(
-        "📧 *EMAIL ADDRESS*\n\nPlease send your email address to receive the redeem code:",
+        f"*BUY REDEEM CODE*\n"
+        f"{'─' * 20}\n"
+        f"*Amount* : Rs.{amount:.2f}\n"
+        f"{'─' * 20}\n"
+        f"Enter your email address to receive the code:",
         parse_mode="Markdown"
     )
 
@@ -1124,11 +1170,13 @@ async def handle_redeem_finalize(update, user_id, context, mobile):
         pass
 
     await update.message.reply_text(
-        f"✅ *REDEEM CODE REQUEST SUBMITTED!*\n\n"
-        f"💰 Amount: Rs.{amount:.2f}\n"
-        f"📧 Email: {email}\n"
-        f"📱 Mobile: {mobile}\n\n"
-        f"⏳ Admin Will Send The Code To Your Email Shortly.",
+        f"*REDEEM CODE REQUEST SUBMITTED*\n"
+        f"{'─' * 20}\n"
+        f"*Amount* : Rs.{amount:.2f}\n"
+        f"*Email* : {email}\n"
+        f"*Mobile* : {mobile}\n"
+        f"{'─' * 20}\n"
+        f"Admin will send the code to your email shortly.",
         parse_mode="Markdown"
     )
 
@@ -1138,17 +1186,19 @@ async def handle_redeem_use(update, user_id, code):
     async with aiosqlite.connect(DB_PATH) as db:
         row = await (await db.execute("SELECT id, amount, status FROM redeem_codes WHERE code=?", (code,))).fetchone()
         if not row:
-            await update.message.reply_text("❌ Invalid Redeem Code.")
+            await update.message.reply_text("*USE REDEEM CODE*\n─────────────────────\nInvalid redeem code.", parse_mode="Markdown")
             return
         if row[2] != 'active':
-            await update.message.reply_text("❌ This Code Has Already Been Used Or Is Not Active Yet.")
+            await update.message.reply_text("*USE REDEEM CODE*\n─────────────────────\nThis code has already been used or is not active.", parse_mode="Markdown")
             return
         amount = row[1]
         await db.execute("UPDATE redeem_codes SET status='used' WHERE id=?", (row[0],))
         await db.execute("UPDATE user_balance SET balance = balance + ? WHERE user_id=?", (amount, user_id))
         await db.commit()
     await update.message.reply_text(
-        f"🎉 *REDEEM CODE APPLIED!*\n\n💰 Rs.{amount:.2f} Added To Your Balance!",
+        f"*REDEEM CODE APPLIED*\n"
+        f"{'─' * 20}\n"
+        f"*Amount Added* : Rs.{amount:.2f}",
         parse_mode="Markdown"
     )
 
@@ -1167,13 +1217,19 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['waiting_for'] = 'redeem_buy_amount'
         redeem_price = await get_setting("redeem_code_price", "10")
         await query.message.reply_text(
-            f"🛒 *BUY REDEEM CODE*\n\nSend The Amount For The Redeem Code (Minimum Rs.{redeem_price}):",
+            f"*BUY REDEEM CODE*\n"
+            f"{'─' * 20}\n"
+            f"*Minimum Amount* : Rs.{redeem_price}\n"
+            f"{'─' * 20}\n"
+            f"Send the amount for the redeem code:",
             parse_mode="Markdown"
         )
     elif data == "redeem_use":
         context.user_data['waiting_for'] = 'redeem_use'
         await query.message.reply_text(
-            "🎟️ *USE REDEEM CODE*\n\nSend Your Redeem Code:",
+            f"*USE REDEEM CODE*\n"
+            f"{'─' * 20}\n"
+            f"Send your redeem code below:",
             parse_mode="Markdown"
         )
     elif data.startswith("wd_upi_"):
