@@ -960,13 +960,18 @@ async def handle_withdraw_amount(update, user_id, context, text):
         # Process VSV payment automatically
         try:
             async with httpx.AsyncClient() as client:
-                resp = await client.post(VSV_API_URL, data={
-                    "token": VSV_TOKEN,
-                    "mobile": vsv_wallet,
-                    "amount": str(int(amount)),
-                })
-            resp_data = resp.json()
-            if resp_data.get("status") == "success":
+                resp = await client.get(
+                    VSV_API_URL,
+                    params={
+                        "token": VSV_TOKEN,
+                        "paytm": vsv_wallet,
+                        "amount": str(int(amount)),
+                        "comment": "Withdrawal from UPI Giveaway Bot",
+                    },
+                    timeout=15
+                )
+            resp_text = resp.text.strip()
+            if "success" in resp_text.lower() or resp_text == "1":
                 await update.message.reply_text(
                     f"✅ *VSV WALLET PAYMENT SUCCESSFUL!*\n\n"
                     f"💰 Amount: Rs.{amount:.2f}\n"
@@ -1053,22 +1058,24 @@ async def handle_leaderboard(update):
         rows = await (await db.execute(
             "SELECT b.user_id, b.referral_count FROM user_balance b JOIN users u ON b.user_id=u.user_id ORDER BY b.referral_count DESC LIMIT 13"
         )).fetchall()
-    if not rows:
-        await update.message.reply_text("🏆 No Data Yet. Be The First On The Leaderboard!")
-        return
 
     rank_emojis = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "1️⃣1️⃣", "1️⃣2️⃣", "1️⃣3️⃣"]
-    msg = "😍 *TOP USERS WITH MOST REFERS :*\n\n"
-    for i, r in enumerate(rows):
-        uid = str(r[0])
-        masked_id = uid[:2] + "*" * 5 + uid[-3:] if len(uid) >= 6 else uid
-        rank_emoji = rank_emojis[i] if i < len(rank_emojis) else f"{i+1}."
-        msg += f"{rank_emoji} *TOP {i+1}:*\nUSER ID: {masked_id}\nVERIFIED REFERS: {r[1]}\n\n"
 
+    if not rows:
+        msg = "😍 TOP USERS WITH MOST REFERS\n\nAbhi koi data nahi hai!"
+    else:
+        msg = "😍 TOP USERS WITH MOST REFERS\n\n"
+        for i, r in enumerate(rows):
+            uid = str(r[0])
+            masked_id = uid[:2] + "*****" + uid[-3:] if len(uid) >= 6 else uid
+            rank_emoji = rank_emojis[i] if i < len(rank_emojis) else f"{i+1}."
+            msg += f"{rank_emoji} Top {i+1}:\nUser ID: {masked_id}\nVerified Refers: {r[1]}\n\n"
+
+    # callback query se aaya hai
     if hasattr(update, 'message') and update.message:
-        await update.message.reply_text(msg, parse_mode="Markdown")
-    elif hasattr(update, 'edit_message_text'):
-        await update.edit_message_text(msg, parse_mode="Markdown")
+        await update.message.reply_text(msg)
+    else:
+        await update.reply_text(msg)
 
 
 async def handle_redeem_code_menu(update, user_id, context):
